@@ -57,13 +57,13 @@ if __name__ == "__main__":
 
     with open("_ode_input.dat", mode="r") as fin:
         for line in islice(fin, 1, None):
-            ins = line.split()
+            inpData = line.split()
 
-    print(ins, type(ins))
-    a = float(ins[0])
-    b = float(ins[1])
-    x0 = float(ins[2])
-    n = int(ins[3])
+    print(inpData, type(inpData))
+    a = float(inpData[0])
+    b = float(inpData[1])
+    x0 = float(inpData[2])
+    n = int(inpData[3])
     print(f"a:{type(a)}, b:{type(b)}, x0:{type(x0)}, n:{type(n)}")
 
 
@@ -118,8 +118,8 @@ if __name__ == "__main__":
     print(f"Flag(dopri5): {flag}; Maxiter: {maxiter:8d}")
 
     # scipy.integrate.solve_ivp solutions
-    t_span = (0.0, 10.0)    # t0, tf
-    y0 = [-1.0]             # y0
+    t_span = (a, b)    # t0, tf
+    y0 = [x0]             # y0
     t_evPt = np.array(t)    # times at which to store the computed solution
 
     sol1 = solve_ivp(f1, t_span, y0, method='RK45',  t_eval=t_evPt)
