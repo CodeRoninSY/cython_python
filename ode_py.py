@@ -37,6 +37,9 @@ y' = f(y,t) with y(t[0]) = y0
 """
 
 from __future__ import print_function
+from itertools import islice
+import sys
+from pprint import pprint
 from timeit import timeit
 import numpy as np
 from pylab import *
@@ -46,6 +49,24 @@ from ode_py import Function, euler, heun, rk2a, rk2b, rk4, \
 
 
 if __name__ == "__main__":
+
+    a = np.float32
+    b = np.float32
+    x0 = np.float32
+    n = np.int16
+
+    with open("_ode_input.dat", mode="r") as fin:
+        for line in islice(fin, 1, None):
+            ins = line.split()
+
+    print(ins, type(ins))
+    a = float(ins[0])
+    b = float(ins[1])
+    x0 = float(ins[2])
+    n = int(ins[3])
+    print(f"a:{type(a)}, b:{type(b)}, x0:{type(x0)}, n:{type(n)}")
+
+
     # Setting parameters for scipy.ode methods
     WTHJACO = False     # with_jacobian parameter
     MAXSTP = 1000  # max iter no for scipy.integrate.ode solvers
@@ -54,28 +75,30 @@ if __name__ == "__main__":
     BDFORDR1 = 5  # BDF method order; <= 5
     BDFORDR2 = 2  # BDF method order; <= 5
     DOPRI5_SF = 0.84  # Dopri5 S: safety factor; default=0.9
-    ATOL = 1.0e-6  # atol (dopri5)
-    RTOL = 1.0e-6   # rtol (dopri5)
-    ERTOL = 1.0e-6  # err tolerance
-    BETA = 0.04     # controller test, PI
+    ATOL = 1.0e-4  # atol (dopri5)
+    RTOL = 1.0e-4   # rtol (dopri5)
+    ERTOL = 1.0e-4  # err tolerance
+    BETA = 0.08  # controller test, PI
+    VERBO = 1
 
+    # functions -------------------------------------
     def f(x, t) -> Function:
         return x * np.sin(t)
 
     def f1(t, y):
         return y * np.sin(t)
-
+    # fn---------------------------------------------
 
     # t_init, t_last
-    a, b = (0.0, 10.0)
+    # a, b = (0.0, 10.0)
     # x_init:x(0) / y_init:y(0)
-    x0 = -1.0
+    # x0 = -1.0
 
     t_init = [a, b]
 
     # discretize the solution domain
-    n = 101
-    t = np.linspace(a, b, n)
+    # n = 21
+    t = np.linspace(float(a), float(b), int(n))
 
     # print(f"linspace-t: {t}")
 
@@ -87,132 +110,153 @@ if __name__ == "__main__":
     x_rk4 = rk4(f, x0, t)
     x_rk45, e_rk45 = rk45(f, x0, t)
     x_pc4 = pc4(f, x0, t)
-    t_rkf, x_rkf = rkf(f, a, b, x0, ERTOL, 1.0, 0.01)  # unequally spaced t
+    # unequally spaced t
+    t_rkf, x_rkf = rkf(f, a, b, x0, ERTOL, 1.0, 0.01)
     t_dp54, x_dp54, flag, maxiter = dopri5(
         f, a, b, x0, ERTOL, 1.0, 0.01, 1000 )
 
     print(f"Flag(dopri5): {flag}; Maxiter: {maxiter:8d}")
 
     # scipy.integrate.solve_ivp solutions
-    t_evPt = np.array(t)
-    sol1 = solve_ivp(f1, [0.0, 10.0], [-1], method='RK45',t_eval=t_evPt)
-    sol2 = solve_ivp(f1, [0.0, 10.0], [-1], method='RK23', t_eval=t_evPt)
-    sol3 = solve_ivp(f1, [0.0, 10.0], [-1], method='Radau', t_eval=t_evPt)
-    sol4 = solve_ivp(f1, [0.0, 10.0], [-1], method='BDF', t_eval=t_evPt)
-    sol5 = solve_ivp(f1, [0.0, 10.0], [-1], method='LSODA', t_eval=t_evPt)
+    t_span = (0.0, 10.0)    # t0, tf
+    y0 = [-1.0]             # y0
+    t_evPt = np.array(t)    # times at which to store the computed solution
 
-    print(sol1.success, sol1.nfev, sol1.njev, sol1.status)
-    print(sol2.success, sol2.nfev, sol2.njev, sol2.status)
-    print(sol3.success, sol3.nfev, sol3.njev, sol3.status)
-    print(sol4.success, sol4.nfev, sol4.njev, sol4.status)
-    print(sol5.success, sol5.nfev, sol5.njev, sol5.status)
+    sol1 = solve_ivp(f1, t_span, y0, method='RK45',  t_eval=t_evPt)
+    sol2 = solve_ivp(f1, t_span, y0, method='RK23',  t_eval=t_evPt)
+    sol3 = solve_ivp(f1, t_span, y0, method='Radau',  t_eval=t_evPt)
+    sol4 = solve_ivp(f1, t_span, y0, method='BDF',  t_eval=t_evPt)
+    sol5 = solve_ivp(f1, t_span, y0, method='LSODA',  t_eval=t_evPt)
+
+    print(f"RK45:: success:{sol1.success}, nfev:{sol1.nfev}, njev:{sol1.njev}, stat:{sol1.status}, msg:{sol1.message}")
+    print(f"RK23:: success:{sol2.success}, nfev:{sol2.nfev}, njev:{sol2.njev}, stat:{sol2.status}, msg:{sol2.message}")
+    print(f"RADAU:: success:{sol3.success}, nfev:{sol3.nfev}, njev:{sol3.njev}, stat:{sol3.status}, msg:{sol3.message}")
+    print(f"BDF:: success:{sol4.success}, nfev:{sol4.nfev}, njev:{sol4.njev}, stat:{sol4.status}, msg:{sol4.message}")
+    print(f"LSODA:: success:{sol5.success}, nfev:{sol5.nfev}, njev:{sol5.njev}, stat:{sol5.status}, msg:{sol5.message}")
 
     # scipy.integrate.ode solutions
     dt = float((b - a) / (n - 1))
     t_l = b
 
     # Vode
-    print(f"VODE, meth=ADAMS, ord: {ADMSORDR1}")
+    print("VODE, meth=ADAMS, ord: {}".format(ADMSORDR1))
     v1_t = []
     v1_y = []
     v1 = ode(f1).set_integrator('vode', method='adams', \
-        with_jacobian=WTHJACO, nsteps=MAXSTP, order=ADMSORDR1)
+        with_jacobian=WTHJACO, nsteps=MAXSTP,
+        order=ADMSORDR1)
     v1.set_initial_value(x0, a)
     v1_t = np.append(v1_t, a)
     v1_y = np.append(v1_y, x0)
     while v1.successful() and v1.t < t_l:
         v1_t = np.append(v1_t, v1.t+dt)
         v1_y = np.append(v1_y, v1.integrate(v1.t+dt, step=False))
-        print(v1.t, v1.y)
+        # print(v1.t, v1.y)
 
     # print(f"v1_t: {v1_t}, v1_y: {v1_y}")
 
     # scipy.integrate.ode solutions - VODE Adams(12)
-    print(f"VODE, meth=ADAMS, ord: {ADMSORDR2}")
+    print("VODE, meth=ADAMS, ord: {}".format(ADMSORDR2))
     v2_t = []
     v2_y = []
     v2 = ode(f1).set_integrator('vode', method='adams',
-                                with_jacobian=WTHJACO, nsteps=MAXSTP, order=ADMSORDR2)
+                                with_jacobian=WTHJACO,
+                                nsteps=MAXSTP,
+                                order=ADMSORDR2)
     v2.set_initial_value(x0, a)
     v2_t = np.append(v2_t, a)
     v2_y = np.append(v2_y, x0)
     while v2.successful() and v2.t < t_l:
         v2_t = np.append(v2_t, v2.t+dt)
         v2_y = np.append(v2_y, v2.integrate(v2.t+dt, step=False))
-        print(v2.t, v2.y)
+        # print(v2.t, v2.y)
 
 
     # scipy.integrate.ode solutions - VODE BDF(5)
-    print(f"VODE, meth=BDF, ord: {BDFORDR1}")
+    print("VODE, meth=BDF, ord: {}".format(BDFORDR1))
     v3_t = []
     v3_y = []
     v3 = ode(f1).set_integrator('vode', method='BDF',
-                                with_jacobian=WTHJACO, nsteps=MAXSTP, order=BDFORDR1)
+                                with_jacobian=WTHJACO,
+                                nsteps=MAXSTP,
+                                order=BDFORDR1)
     v3.set_initial_value(x0, a)
     v3_t = np.append(v3_t, a)
     v3_y = np.append(v3_y, x0)
     while v3.successful() and v3.t < t_l:
         v3_t = np.append(v3_t, v3.t+dt)
         v3_y = np.append(v3_y, v3.integrate(v3.t+dt, step=False))
-        print(v3.t, v3.y)
+        # print(v3.t, v3.y)
 
     # scipy.integrate.ode solutions - VODE BDF(2)
-    print(f"VODE, meth=BDF, ord: {BDFORDR2}")
+    print("VODE, meth=BDF, ord: {}".format(BDFORDR2))
     v4_t = []
     v4_y = []
     v4 = ode(f1).set_integrator('vode', method='BDF',
-                                with_jacobian=WTHJACO, nsteps=MAXSTP, order=BDFORDR2)
+                                with_jacobian=WTHJACO,
+                                nsteps=MAXSTP,
+                                order=BDFORDR2)
     v4.set_initial_value(x0, a)
     v4_t = np.append(v4_t, a)
     v4_y = np.append(v4_y, x0)
     while v4.successful() and v4.t < t_l:
         v4_t = np.append(v4_t, v4.t + dt)
         v4_y = np.append(v4_y, v4.integrate(v4.t+dt, step=False))
-        print(v4.t, v4.y)
+        # print(v4.t, v4.y)
 
     # scipy.integrate.ode solutions - LSODA; BDF(5) & ADMS(12)
-    print(f"LSODA, meth=BDF, ord: {BDFORDR2}")
+    print("LSODA, meth=BDF, ord: {}".format(BDFORDR2))
     v5_t = []
     v5_y = []
     v5 = ode(f1).set_integrator('lsoda', method='BDF',
-                                with_jacobian=WTHJACO, nsteps=MAXSTP, max_order_s=BDFORDR2)
+                                with_jacobian=WTHJACO,
+                                nsteps=MAXSTP,
+                                max_order_s=BDFORDR2)
     v5.set_initial_value(x0, a)
     v5_t = np.append(v5_t, a)
     v5_y = np.append(v5_y, x0)
     while v5.successful() and v5.t < t_l:
         v5_t = np.append(v5_t, v5.t + dt)
-        v5_y = np.append(v5_y, v5.integrate(v5.t+dt, step=False))
-        print(v5.t, v5.y)
+        v5_y = np.append(v5_y, v5.integrate(v5.t+dt))
+        # print(v5.t, v5.y)
 
     # scipy.integrate.ode solutions - DOPRI;
-    print(f"DOPRI5, meth=RK, ord: 5")
+    print("DOPRI5, meth=RK, ord: 5")
     v6_t = []
     v6_y = []
     v6 = ode(f1).set_integrator('dopri5',
-                                nsteps=MAXSTP, safety=DOPRI5_SF, atol=ATOL, rtol=RTOL,
-                                beta=BETA)
+                                nsteps=MAXSTP,
+                                safety=DOPRI5_SF,
+                                atol=ATOL,
+                                rtol=RTOL,
+                                beta=BETA, verbosity=VERBO)
     v6.set_initial_value(x0, a)
     v6_t = np.append(v6_t, a)
     v6_y = np.append(v6_y, x0)
     while v6.successful() and v6.t < t_l:
         v6_t = np.append(v6_t, v6.t + dt)
-        v6_y = np.append(v6_y, v6.integrate(v6.t+dt, step=False))
-        print(v6.t, v6.y)
+        v6_y = np.append(v6_y, v6.integrate(v6.t + dt))
+        # print(v6.t, v6.y)
+    print("DOPRI5: ReturnCode: {}".format(v6.get_return_code()))
 
     # scipy.integrate.ode solutions - DOP853;
-    print(f"DOP853, meth=RK, ord: 8(5,3)")
+    print("DOP853, meth=RK, ord: 8(5,3)")
     v7_t = []
     v7_y = []
     v7 = ode(f1).set_integrator('dop853',
-                                nsteps=MAXSTP, safety=DOPRI5_SF, atol=ATOL, rtol=RTOL,
+                                nsteps=MAXSTP,
+                                safety=DOPRI5_SF,
+                                atol=ATOL,
+                                rtol=RTOL,
                                 beta=BETA)
     v7.set_initial_value(x0, a)
     v7_t = np.append(v7_t, a)
     v7_y = np.append(v7_y, x0)
     while v7.successful() and v7.t < t_l:
         v7_t = np.append(v7_t, v7.t + dt)
-        v7_y = np.append(v7_y, v7.integrate(v7.t+dt, step=False))
-        print(v7.t, v7.y)
+        v7_y = np.append(v7_y, v7.integrate(v7.t + dt))
+        # print(v7.t, v7.y)
+    print("DOP853: ReturnCode: {}".format(v7.get_return_code()))
 
     #  compute true solution values in equal spaced and unequally spaced cases
     x = -np.exp(1.0 - np.cos(t))
