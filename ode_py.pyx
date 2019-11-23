@@ -18,7 +18,7 @@ from cython.parallel import prange
 from pprint import pprint
 
 cdef class Function:
-    cpdef double evaluate(self, double x, double t) except *:
+    cpdef double evaluate(self, double y, double t) except *:
         return 0
 
 f = Function()
@@ -31,111 +31,111 @@ def feval(funcName, *args):
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def euler(f, double x0, double [:] t):
+def euler(f, double y0, double [:] t):
     ''' Euler explicit method '''
     cdef int n, i
-    cdef double [:] x
+    cdef double [:] y
 
     n = len(t)
-    x = np.array( [x0] * n)
+    y = np.array( [y0] * n)
     for i in range( n - 1 ):
-        x[i+1] = x[i] + ( t[i+1] - t[i]) * f(x[i], t[i])
+        y[i+1] = y[i] + ( t[i+1] - t[i]) * f(y[i], t[i])
 
-    return x
+    return y
 
 
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def heun(f, double x0, double [:] t):
+def heun(f, double y0, double [:] t):
     ''' Heun 2nd order explicit '''
     cdef int n, i
-    cdef double [:] x
+    cdef double [:] y
 
     n = len( t )
-    x = np.array( [x0] * n )
+    y = np.array( [y0] * n )
     for i in range( n - 1 ):
         h = t[i+1] - t[i]
-        k1 = h * f( x[i], t[i] )
-        k2 = h * f( x[i] + k1, t[i+1] )
-        x[i+1] = x[i] + ( k1 + k2 ) / 2.0
+        k1 = h * f( y[i], t[i] )
+        k2 = h * f( y[i] + k1, t[i+1] )
+        y[i+1] = y[i] + ( k1 + k2 ) / 2.0
 
-    return x
+    return y
 
 
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def rk2a(f, double x0, double [:] t):
+def rk2a(f, double y0, double [:] t):
     ''' Runge-Kutta 2nd order $O(h^2)$'''
     cdef int n, i
-    cdef double [:] x
+    cdef double [:] y
     cdef double h
     cdef double k1
 
     n = len(t)
-    x = np.array([x0]*n)
+    y = np.array([y0]*n)
     for i in range( n-1 ):
         h = t[i+1] - t[i]
-        k1 = h * f(x[i], t[i]) / 2.0
-        x[i+1] = x[i] + h * f(x[i]+k1, t[i]+h/2.0)
+        k1 = h * f(y[i], t[i]) / 2.0
+        y[i+1] = y[i] + h * f(y[i]+k1, t[i]+h/2.0)
 
-    return x
+    return y
 
 
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def rk2b(f, double x0, double [:] t):
+def rk2b(f, double y0, double [:] t):
     ''' Runge-Kutta 2nd order $O(h^2)$'''
     cdef int n, i
-    cdef double [:] x
+    cdef double [:] y
     cdef double h
     cdef double k1, k2
 
     n = len(t)
-    x = np.array([x0]*n)
+    y = np.array([y0]*n)
     for i in range( n-1 ):
         h = t[i+1] - t[i]
-        k1 = h * f(x[i], t[i])
-        k2 = h * f(x[i] + k1, t[i+1])
-        x[i+1] = x[i] + (k1 + k2) /2.0
+        k1 = h * f(y[i], t[i])
+        k2 = h * f(y[i] + k1, t[i+1])
+        y[i+1] = y[i] + (k1 + k2) /2.0
 
-    return x
+    return y
 
 
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def rk4(f, double x0, double [:] t):
+def rk4(f, double y0, double [:] t):
     ''' Runge-Kutta 4th order $O(h^4)$'''
     cdef int n, i
-    cdef double [:] x
+    cdef double [:] y
     cdef double h
     cdef double k1, k2, k3, k4
 
     n = len(t)
-    x = np.array([x0]*n)
+    y = np.array([y0]*n)
 
     for i in range(n - 1):
         h = t[i+1] - t[i]
-        k1 = h * f( x[i], t[i] )
-        k2 = h * f( x[i] + 0.5 * k1, t[i] + 0.5 * h )
-        k3 = h * f( x[i] + 0.5 * k2, t[i] + 0.5 * h )
-        k4 = h * f( x[i] + k3, t[i+1] )
-        x[i+1] = x[i] + ( k1 + 2.0 * ( k2 + k3 ) + k4 ) / 6.0
+        k1 = h * f( y[i], t[i] )
+        k2 = h * f( y[i] + 0.5 * k1, t[i] + 0.5 * h )
+        k3 = h * f( y[i] + 0.5 * k2, t[i] + 0.5 * h )
+        k4 = h * f( y[i] + k3, t[i+1] )
+        y[i+1] = y[i] + ( k1 + 2.0 * ( k2 + k3 ) + k4 ) / 6.0
 
-    return x
+    return y
 
 
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def rk45(f, double x0, double [:] t):
+def rk45(f, double y0, double [:] t):
     ''' Runge-Kutta 4th(5) order $O(h^4(5))$'''
     cdef int n, i
-    cdef double [:] x, e
-    cdef double k1, k2, k3, k4, k5, k6, x5
+    cdef double [:] y, e
+    cdef double k1, k2, k3, k4, k5, k6, y5
 
     cdef double c20, c30, c40, c50, c60
     cdef double c21, c31, c41, c42, c43, c51, c52, c53, c54
@@ -182,37 +182,37 @@ def rk45(f, double x0, double [:] t):
     b6  =   3.636363636363636e-02  #  2.0/55.0
 
     n = len( t )
-    x = np.array( [ x0 ] * n )
-    e = np.array( [ 0 * x0 ] * n )
+    y = np.array( [ y0 ] * n )
+    e = np.array( [ 0 * y0 ] * n )
     for i in range( n - 1 ):
         h = t[i+1] - t[i]
-        k1 = h * f( x[i], t[i] )
-        k2 = h * f( x[i] + c21 * k1, t[i] + c20 * h )
-        k3 = h * f( x[i] + c31 * k1 + c32 * k2, t[i] + c30 * h )
-        k4 = h * f( x[i] + c41 * k1 + c42 * k2 + c43 * k3, t[i] + c40 * h )
-        k5 = h * f( x[i] + c51 * k1 + c52 * k2 + c53 * k3 + c54 * k4, \
+        k1 = h * f( y[i], t[i] )
+        k2 = h * f( y[i] + c21 * k1, t[i] + c20 * h )
+        k3 = h * f( y[i] + c31 * k1 + c32 * k2, t[i] + c30 * h )
+        k4 = h * f( y[i] + c41 * k1 + c42 * k2 + c43 * k3, t[i] + c40 * h )
+        k5 = h * f( y[i] + c51 * k1 + c52 * k2 + c53 * k3 + c54 * k4, \
                         t[i] + h )
         k6 = h * f( \
-            x[i] + c61 * k1 + c62 * k2 + c63 * k3 + c64 * k4 + c65 * k5, \
+            y[i] + c61 * k1 + c62 * k2 + c63 * k3 + c64 * k4 + c65 * k5, \
             t[i] + c60 * h )
 
-        x[i+1] = x[i] + a1 * k1 + a3 * k3 + a4 * k4 + a5 * k5
-        x5 = x[i] + b1 * k1 + b3 * k3 + b4 * k4 + b5 * k5 + b6 * k6
+        y[i+1] = y[i] + a1 * k1 + a3 * k3 + a4 * k4 + a5 * k5
+        y5 = y[i] + b1 * k1 + b3 * k3 + b4 * k4 + b5 * k5 + b6 * k6
 
-        e[i+1] = abs( x5 - x[i+1] )
+        e[i+1] = abs( y5 - y[i+1] )
 
-    return ( x, e )
+    return ( y, e )
 
 
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def rkf(f, double a, double b, double x0, double tol, \
+def rkf(f, double a, double b, double y0, double tol, \
         double hmax, double hmin):
     ''' Runge-Kutta 6th order $O(h^6)$'''
     cdef int n, i
-    cdef double t, x, h
-    cdef double [:] X, T
+    cdef double t, y, h
+    cdef double [:] Y, T
     cdef double a2, a3, a4, a5, a6
     cdef double b21, b31, b32, b41, b51, b52, b53, b54, \
                 b61, b62, b63, b64, b65
@@ -261,12 +261,12 @@ def rkf(f, double a, double b, double x0, double tol, \
     # Set t and x according to initial condition and assume that h starts
     # with a value that is as large as possible.
     t = a
-    x = x0
+    y = y0
     h = hmax
 
     # Initialize arrays that will be returned
     T = np.array( [t] )
-    X = np.array( [x] )
+    Y = np.array( [y] )
 
     while t < b:
         # Adjust step size when we get to last interval
@@ -275,12 +275,12 @@ def rkf(f, double a, double b, double x0, double tol, \
 
         # Compute values needed to compute truncation error estimate and
         # the 4th order RK estimate.
-        k1 = h * f( x, t )
-        k2 = h * f( x + b21 * k1, t + a2 * h )
-        k3 = h * f( x + b31 * k1 + b32 * k2, t + a3 * h )
-        k4 = h * f( x + b41 * k1 + b42 * k2 + b43 * k3, t + a4 * h )
-        k5 = h * f( x + b51 * k1 + b52 * k2 + b53 * k3 + b54 * k4, t + a5 * h )
-        k6 = h * f( x + b61 * k1 + b62 * k2 + b63 * k3 + b64 * k4 + b65 * k5, \
+        k1 = h * f( y, t )
+        k2 = h * f( y + b21 * k1, t + a2 * h )
+        k3 = h * f( y + b31 * k1 + b32 * k2, t + a3 * h )
+        k4 = h * f( y + b41 * k1 + b42 * k2 + b43 * k3, t + a4 * h )
+        k5 = h * f( y + b51 * k1 + b52 * k2 + b53 * k3 + b54 * k4, t + a5 * h )
+        k6 = h * f( y + b61 * k1 + b62 * k2 + b63 * k3 + b64 * k4 + b65 * k5, \
                     t + a6 * h )
 
         # Compute the estimate of the local truncation error.  If it's small
@@ -290,9 +290,9 @@ def rkf(f, double a, double b, double x0, double tol, \
             r = max( r )
         if r <= tol:
             t = t + h
-            x = x + c1 * k1 + c3 * k3 + c4 * k4 + c5 * k5
+            y = y + c1 * k1 + c3 * k3 + c4 * k4 + c5 * k5
             T = np.append( T, t )
-            X = np.append( X, [x], 0 )
+            Y = np.append( Y, [y], 0 )
 
         # Now compute next step size, and make sure that it is not too big or
         # too small.
@@ -305,17 +305,17 @@ def rkf(f, double a, double b, double x0, double tol, \
             break
 
     # endwhile
-    return ( T, X )
+    return ( T, Y )
 
 
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def dopri5(f, double a, double b, double x0, double tol, double hmax, double hmin, int maxiter):
+def dopri5(f, double a, double b, double y0, double tol, double hmax, double hmin, int maxiter):
     ''' Runge-Kutta Dormand-Prince 5th order $O(h^5)$'''
     cdef int n, i, flag
-    cdef double t, x, h
-    cdef double [:] X, T
+    cdef double t, y, h
+    cdef double [:] Y, T
     cdef double a21, a31, a32, a41, a42, a43, a51, a52, a53, a54, \
                 a61, a62, a63, a64, a65, \
                 a71, a72, a73, a74, a75, a76
@@ -373,22 +373,23 @@ def dopri5(f, double a, double b, double x0, double tol, double hmax, double hmi
     b7p = (1.0/40.0)
 
     t = a
-    x = x0
+    y = y0
     h = hmax
 
     # Initialize arrays that will be returned
     T = np.array( [t] )
-    X = np.array( [x] )
+    Y = np.array( [y] )
 
     for i in range(maxiter):
         # /* Compute the function values */
-        K1 = f(x, t)
-        K2 = f(x + h*(a21*K1), t + c2*h)
-        K3 = f(x+h*(a31*K1+a32*K2), t + c3*h)
-        K4 = f(x+h*(a41*K1+a42*K2+a43*K3), t + c4*h )
-        K5 = f(x+h*(a51*K1+a52*K2+a53*K3+a54*K4), t + c5*h)
-        K6 = f(x+h*(a61*K1+a62*K2+a63*K3+a64*K4+a65*K5), t + h)
-        K7 = f(x+h*(a71*K1+a72*K2+a73*K3+a74*K4+a75*K5+a76*K6), t + h)
+        # print(i, Y[i], T[i])
+        K1 = f(y, t)
+        K2 = f(y + h*(a21*K1), t + c2*h)
+        K3 = f(y+h*(a31*K1+a32*K2), t + c3*h)
+        K4 = f(y+h*(a41*K1+a42*K2+a43*K3), t + c4*h )
+        K5 = f(y+h*(a51*K1+a52*K2+a53*K3+a54*K4), t + c5*h)
+        K6 = f(y+h*(a61*K1+a62*K2+a63*K3+a64*K4+a65*K5), t + h)
+        K7 = f(y+h*(a71*K1+a72*K2+a73*K3+a74*K4+a75*K5+a76*K6), t + h)
 
         error = abs((b1-b1p)*K1+(b3-b3p)*K3+(b4-b4p)*K4+(b5-b5p)*K5 +
                     (b6-b6p)*K6+(b7-b7p)*K7)
@@ -397,9 +398,9 @@ def dopri5(f, double a, double b, double x0, double tol, double hmax, double hmi
         delta = 0.84 * math.pow(tol / error, (1.0/5.0))
         if (error < tol):
             t = t + h
-            x = x + h * (b1*K1+b3*K3+b4*K4+b5*K5+b6*K6)
+            y = y + h * (b1*K1+b3*K3+b4*K4+b5*K5+b6*K6)
             T = np.append(T, t)
-            X = np.append( X, [x], 0)
+            Y = np.append( Y, [y], 0)
 
         if (delta <= 0.1):
             h = h * 0.1
@@ -423,22 +424,22 @@ def dopri5(f, double a, double b, double x0, double tol, double hmax, double hmi
     if (i <= 0):
         flag = 2
 
-    return (T, X, flag,  maxiter)
+    return (T, Y, flag,  maxiter)
 
 
 
 @timeit
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pc4( f, double x0, double [:] t ):
+def pc4( f, double y0, double [:] t ):
     ''' Adams-Bashforth 4th order predictor-corrector $O(h^4)$'''
     cdef int n, i
-    cdef double [:] x
+    cdef double [:] y
     cdef double f0, f1, f2, f3, w, fw
     cdef double h, k1, k2, k3, k4
 
     n = len( t )
-    x = np.array( [ x0 ] * n )
+    y = np.array( [ y0 ] * n )
 
     # Start up with 4th order Runge-Kutta (single-step method).
     # The extra code involving f0, f1, f2, and f3 helps us get ..
@@ -448,22 +449,147 @@ def pc4( f, double x0, double [:] t ):
     f1 = f2 = f3 = 0
     for i in range( min( 3, n - 1 ) ):
         h = t[i+1] - t[i]
-        f0 = f( x[i], t[i] )
+        f0 = f( y[i], t[i] )
         k1 = h * f0
-        k2 = h * f( x[i] + 0.5 * k1, t[i] + 0.5 * h )
-        k3 = h * f( x[i] + 0.5 * k2, t[i] + 0.5 * h )
-        k4 = h * f( x[i] + k3, t[i+1] )
-        x[i+1] = x[i] + ( k1 + 2.0 * ( k2 + k3 ) + k4 ) / 6.0
+        k2 = h * f( y[i] + 0.5 * k1, t[i] + 0.5 * h )
+        k3 = h * f( y[i] + 0.5 * k2, t[i] + 0.5 * h )
+        k4 = h * f( y[i] + k3, t[i+1] )
+        y[i+1] = y[i] + ( k1 + 2.0 * ( k2 + k3 ) + k4 ) / 6.0
         f1, f2, f3 = ( f0, f1, f2 )
 
     # Begin Adams-Bashforth-Moulton steps
 
     for i in range( 3, n - 1 ):
         h = t[i+1] - t[i]
-        f0 = f( x[i], t[i] )
-        w = x[i] + h * ( 55.0 * f0 - 59.0 * f1 + 37.0 * f2 - 9.0 * f3 ) / 24.0
+        f0 = f( y[i], t[i] )
+        w = y[i] + h * ( 55.0 * f0 - 59.0 * f1 + 37.0 * f2 - 9.0 * f3 ) / 24.0
         fw = f( w, t[i+1] )
-        x[i+1] = x[i] + h * ( 9.0 * fw + 19.0 * f0 - 5.0 * f1 + f2 ) / 24.0
+        y[i+1] = y[i] + h * ( 9.0 * fw + 19.0 * f0 - 5.0 * f1 + f2 ) / 24.0
         f1, f2, f3 = ( f0, f1, f2 )
 
-    return x
+    return y
+
+
+@timeit
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def ab2e( f, double y0, double [:] t ):
+    ''' Adams-Bashforth 2nd order explicit predictor-corrector $O(h^2)$'''
+    cdef int n, i
+    cdef double [:] y
+    cdef double f0, f1
+    cdef double h
+
+    n = len( t )
+    y = np.array( [ y0 ] * n )
+
+    # Start up with 1st order Euler (single-step method).
+    # The extra code involving f0, f1 helps us get ..
+    # ready for the multi-step method to follow in order to ..
+    #  minimize the number of function evaluations needed.
+
+    f1 = 0
+    for i in range( min( 1, n - 1 ) ):
+        h = t[i+1] - t[i]
+        f0 = f( y[i], t[i] )
+        y[i+1] = y[i] + h * f0
+        f1 = f0
+
+    # Begin Adams-Bashforth-Moulton steps
+
+    for i in range( 1, n - 1 ):
+        h = t[i+1] - t[i]
+        f0 = f( y[i], t[i] )
+        y[i+1] = y[i] + h * ( 3.0 * f0 - f1 ) / 2.0
+        f1 = f0
+
+    return y
+
+
+@timeit
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def am2i( f, double y0, double [:] t ):
+    ''' Adams-Moulton 2nd order implicit predictor-corrector $O(h^2)$'''
+    cdef int n, i
+    cdef double [:] y
+    cdef double f0, f1, f2
+    cdef double h
+
+    n = len( t )
+    y = np.array( [ y0 ] * n )
+
+    # Start up with 1st order Euler (single-step method).
+    # The extra code involving f0, f1 helps us get ..
+    # ready for the multi-step method to follow in order to ..
+    #  minimize the number of function evaluations needed.
+
+    f1 = f2 = 0
+    for i in range( min( 2, n - 1 ) ):
+        h = t[i+1] - t[i]
+        f0 = f( y[i], t[i] )
+        k1 = h * f0
+        k2 = h * f( y[i] + 0.5 * k1, t[i] + 0.5 * h )
+        k3 = h * f( y[i] + 0.5 * k2, t[i] + 0.5 * h )
+        k4 = h * f( y[i] + k3, t[i+1] )
+        y[i+1] = y[i] + ( k1 + 2.0 * ( k2 + k3 ) + k4 ) / 6.0
+        f1, f2 = (f0, f1)
+
+    # Begin Adams-Bashforth-Moulton steps
+
+    for i in range( 2, n - 1 ):
+        h = t[i+1] - t[i]
+        f0 = f( y[i], t[i] )
+        w = y[i] + h * f0
+        fw = f( w, t[i+1] )
+        y[i+1] = y[i] + h * ( 5.0 * fw + 8.0 * f0 - f1 ) / 12.0
+        f1, f2 = ( f0, f1 )
+
+    return y
+
+
+@timeit
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def ms4( f, double y0, double [:] t ):
+    ''' Milne-Simpson 4th order predictor-corrector $O(h^4)$
+    Do not use this method - needs to be fixed...
+    '''
+    cdef int n, i
+    cdef double [:] y
+    cdef double f0, f1, f2, f3, f4
+    cdef double h, k1, k2, k3, k4
+
+    n = len( t )
+    y = np.array( [ y0 ] * n )
+
+    # Start up with 4th order Runge-Kutta (single-step method).
+    # The extra code involving f0, f1, f2, and f3 helps us get ..
+    # ready for the multi-step method to follow in order to ..
+    #  minimize the number of function evaluations needed.
+
+    f1 = f2 = f3 = 0
+    for i in range( min( 3, n - 1 ) ):
+        h = t[i+1] - t[i]
+        f0 = f( y[i], t[i] )
+        k1 = h * f0
+        k2 = h * f( y[i] + 0.5 * k1, t[i] + 0.5 * h )
+        k3 = h * f( y[i] + 0.5 * k2, t[i] + 0.5 * h )
+        k4 = h * f( y[i] + k3, t[i+1] )
+        y[i+1] = y[i] + ( k1 + 2.0 * ( k2 + k3 ) + k4 ) / 6.0
+
+    f1 = f(y[1], t[1])
+    f2 = f(y[2], t[2])
+    f3 = f(y[3], t[3])
+
+    # Begin Adams-Bashforth-Moulton steps
+
+    for i in range( 3, n - 1 ):
+        h = t[i+1] - t[i]
+        p = y[i-2] + (4.0/3.0) * h * ( 2.0 * f1 - f2 + 2.0 * f3);
+
+        f4 = f( p, t[i] + h )
+        y[i+1] = y[i-1] + h * ( f2 + 4.0 * f3 + f4 ) / 3.0
+        f1, f2, f3 = ( f2, f3, f(y[i+1], t[i+1]) )
+
+    return y

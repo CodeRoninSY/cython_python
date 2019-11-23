@@ -42,48 +42,49 @@ import sys
 from pprint import pprint
 from timeit import timeit
 import numpy as np
-from pylab import *
+import matplotlib.pyplot as plt
+# from pylab import *
 from scipy.integrate import solve_ivp, ode
 from ode_py import Function, euler, heun, rk2a, rk2b, rk4, \
-                    rk45, rkf, pc4, dopri5
+                    rk45, rkf, pc4, dopri5, ab2e, am2i, ms4
 
 
 if __name__ == "__main__":
 
     a = np.float32
     b = np.float32
-    x0 = np.float32
+    y0 = np.float32
     n = np.int16
 
     with open("_ode_input.dat", mode="r") as fin:
         for line in islice(fin, 1, None):
             inpData = line.split()
 
-    print(inpData, type(inpData))
+    # print(inpData, type(inpData))
     a = float(inpData[0])
     b = float(inpData[1])
-    x0 = float(inpData[2])
+    y0 = float(inpData[2])
     n = int(inpData[3])
-    print(f"a:{type(a)}, b:{type(b)}, x0:{type(x0)}, n:{type(n)}")
+    # print(f"a:{type(a)}, b:{type(b)}, y0:{type(y0)}, n:{type(n)}")
 
 
     # Setting parameters for scipy.ode methods
     WTHJACO = False     # with_jacobian parameter
     MAXSTP = 1000  # max iter no for scipy.integrate.ode solvers
-    ADMSORDR1 = 4  # Adams method order; i=4
+    ADMSORDR1 = 2  # Adams method order; i=4
     ADMSORDR2 = 12  # Adams method order, i=12
     BDFORDR1 = 5  # BDF method order; <= 5
-    BDFORDR2 = 2  # BDF method order; <= 5
+    BDFORDR2 = 4  # BDF method order; <= 5
     DOPRI5_SF = 0.84  # Dopri5 S: safety factor; default=0.9
-    ATOL = 1.0e-4  # atol (dopri5)
-    RTOL = 1.0e-4   # rtol (dopri5)
-    ERTOL = 1.0e-4  # err tolerance
+    ATOL = 1.0e-6  # atol (dopri5)
+    RTOL = 1.0e-6   # rtol (dopri5)
+    ERTOL = 1.0e-6  # err tolerance
     BETA = 0.08  # controller test, PI
     VERBO = 1
 
     # functions -------------------------------------
-    def f(x, t) -> Function:
-        return x * np.sin(t)
+    def f(y, t) -> Function:
+        return y * np.sin(t)
 
     def f1(t, y):
         return y * np.sin(t)
@@ -91,8 +92,8 @@ if __name__ == "__main__":
 
     # t_init, t_last
     # a, b = (0.0, 10.0)
-    # x_init:x(0) / y_init:y(0)
-    # x0 = -1.0
+    # y_init:y(0)
+    # y0 = -1.0
 
     t_init = [a, b]
 
@@ -103,36 +104,45 @@ if __name__ == "__main__":
     # print(f"linspace-t: {t}")
 
     # compute various numerical solutions
-    x_euler = euler(f, x0, t)
-    x_heun = heun(f, x0, t)
-    x_rk2a = rk2a(f, x0, t)
-    x_rk2b = rk2b(f, x0, t)
-    x_rk4 = rk4(f, x0, t)
-    x_rk45, e_rk45 = rk45(f, x0, t)
-    x_pc4 = pc4(f, x0, t)
+    y_euler = euler(f, y0, t)
+    y_heun = heun(f, y0, t)
+    y_rk2a = rk2a(f, y0, t)
+    y_rk2b = rk2b(f, y0, t)
+    y_rk4 = rk4(f, y0, t)
+    y_rk45, e_rk45 = rk45(f, y0, t)
+    y_pc4 = pc4(f, y0, t)
+    y_ab2e = ab2e(f, y0, t)
+    y_am2i = am2i(f, y0, t)
+    y_ms4 = ms4(f, y0, t)
     # unequally spaced t
-    t_rkf, x_rkf = rkf(f, a, b, x0, ERTOL, 1.0, 0.01)
-    t_dp54, x_dp54, flag, maxiter = dopri5(
-        f, a, b, x0, ERTOL, 1.0, 0.01, 1000 )
+    t_rkf, y_rkf = rkf(f, a, b, y0, ERTOL, 1.0, 0.01)
+    t_dp54, y_dp54, flag, maxiter = dopri5(
+        f, a, b, y0, ERTOL, 1.0, 0.01, 1000 )
 
     print(f"Flag(dopri5): {flag}; Maxiter: {maxiter:8d}")
 
     # scipy.integrate.solve_ivp solutions
     t_span = (a, b)    # t0, tf
-    y0 = [x0]             # y0
+    y0 = [y0]             # y0
     t_evPt = np.array(t)    # times at which to store the computed solution
 
     sol1 = solve_ivp(f1, t_span, y0, method='RK45',  t_eval=t_evPt)
     sol2 = solve_ivp(f1, t_span, y0, method='RK23',  t_eval=t_evPt)
     sol3 = solve_ivp(f1, t_span, y0, method='Radau',  t_eval=t_evPt)
     sol4 = solve_ivp(f1, t_span, y0, method='BDF',  t_eval=t_evPt)
-    sol5 = solve_ivp(f1, t_span, y0, method='LSODA',  t_eval=t_evPt)
+    sol5 = solve_ivp(f1, t_span, y0, method='LSODA', t_eval=t_evPt)
 
-    print(f"RK45:: success:{sol1.success}, nfev:{sol1.nfev}, njev:{sol1.njev}, stat:{sol1.status}, msg:{sol1.message}")
-    print(f"RK23:: success:{sol2.success}, nfev:{sol2.nfev}, njev:{sol2.njev}, stat:{sol2.status}, msg:{sol2.message}")
-    print(f"RADAU:: success:{sol3.success}, nfev:{sol3.nfev}, njev:{sol3.njev}, stat:{sol3.status}, msg:{sol3.message}")
-    print(f"BDF:: success:{sol4.success}, nfev:{sol4.nfev}, njev:{sol4.njev}, stat:{sol4.status}, msg:{sol4.message}")
-    print(f"LSODA:: success:{sol5.success}, nfev:{sol5.nfev}, njev:{sol5.njev}, stat:{sol5.status}, msg:{sol5.message}")
+    print(f"sol1(RK45): {sol1}")
+    print(f"sol2(RK23): {sol2}")
+    print(f"sol3(Radau): {sol3}")
+    print(f"sol4(BDF): {sol4}")
+    print(f"sol5(LSODA): {sol5}")
+
+    # print(f"RK45:: success:{sol1.success}, nfev:{sol1.nfev}, njev:{sol1.njev}, stat:{sol1.status}, msg:{sol1.message}")
+    # print(f"RK23:: success:{sol2.success}, nfev:{sol2.nfev}, njev:{sol2.njev}, stat:{sol2.status}, msg:{sol2.message}")
+    # print(f"RADAU:: success:{sol3.success}, nfev:{sol3.nfev}, njev:{sol3.njev}, stat:{sol3.status}, msg:{sol3.message}")
+    # print(f"BDF:: success:{sol4.success}, nfev:{sol4.nfev}, njev:{sol4.njev}, stat:{sol4.status}, msg:{sol4.message}")
+    # print(f"LSODA:: success:{sol5.success}, nfev:{sol5.nfev}, njev:{sol5.njev}, stat:{sol5.status}, msg:{sol5.message}")
 
     # scipy.integrate.ode solutions
     dt = float((b - a) / (n - 1))
@@ -145,9 +155,9 @@ if __name__ == "__main__":
     v1 = ode(f1).set_integrator('vode', method='adams', \
         with_jacobian=WTHJACO, nsteps=MAXSTP,
         order=ADMSORDR1)
-    v1.set_initial_value(x0, a)
+    v1.set_initial_value(y0, a)
     v1_t = np.append(v1_t, a)
-    v1_y = np.append(v1_y, x0)
+    v1_y = np.append(v1_y, y0)
     while v1.successful() and v1.t < t_l:
         v1_t = np.append(v1_t, v1.t+dt)
         v1_y = np.append(v1_y, v1.integrate(v1.t+dt, step=False))
@@ -163,9 +173,9 @@ if __name__ == "__main__":
                                 with_jacobian=WTHJACO,
                                 nsteps=MAXSTP,
                                 order=ADMSORDR2)
-    v2.set_initial_value(x0, a)
+    v2.set_initial_value(y0, a)
     v2_t = np.append(v2_t, a)
-    v2_y = np.append(v2_y, x0)
+    v2_y = np.append(v2_y, y0)
     while v2.successful() and v2.t < t_l:
         v2_t = np.append(v2_t, v2.t+dt)
         v2_y = np.append(v2_y, v2.integrate(v2.t+dt, step=False))
@@ -180,9 +190,9 @@ if __name__ == "__main__":
                                 with_jacobian=WTHJACO,
                                 nsteps=MAXSTP,
                                 order=BDFORDR1)
-    v3.set_initial_value(x0, a)
+    v3.set_initial_value(y0, a)
     v3_t = np.append(v3_t, a)
-    v3_y = np.append(v3_y, x0)
+    v3_y = np.append(v3_y, y0)
     while v3.successful() and v3.t < t_l:
         v3_t = np.append(v3_t, v3.t+dt)
         v3_y = np.append(v3_y, v3.integrate(v3.t+dt, step=False))
@@ -196,9 +206,9 @@ if __name__ == "__main__":
                                 with_jacobian=WTHJACO,
                                 nsteps=MAXSTP,
                                 order=BDFORDR2)
-    v4.set_initial_value(x0, a)
+    v4.set_initial_value(y0, a)
     v4_t = np.append(v4_t, a)
-    v4_y = np.append(v4_y, x0)
+    v4_y = np.append(v4_y, y0)
     while v4.successful() and v4.t < t_l:
         v4_t = np.append(v4_t, v4.t + dt)
         v4_y = np.append(v4_y, v4.integrate(v4.t+dt, step=False))
@@ -212,9 +222,9 @@ if __name__ == "__main__":
                                 with_jacobian=WTHJACO,
                                 nsteps=MAXSTP,
                                 max_order_s=BDFORDR2)
-    v5.set_initial_value(x0, a)
+    v5.set_initial_value(y0, a)
     v5_t = np.append(v5_t, a)
-    v5_y = np.append(v5_y, x0)
+    v5_y = np.append(v5_y, y0)
     while v5.successful() and v5.t < t_l:
         v5_t = np.append(v5_t, v5.t + dt)
         v5_y = np.append(v5_y, v5.integrate(v5.t+dt))
@@ -230,9 +240,9 @@ if __name__ == "__main__":
                                 atol=ATOL,
                                 rtol=RTOL,
                                 beta=BETA, verbosity=VERBO)
-    v6.set_initial_value(x0, a)
+    v6.set_initial_value(y0, a)
     v6_t = np.append(v6_t, a)
-    v6_y = np.append(v6_y, x0)
+    v6_y = np.append(v6_y, y0)
     while v6.successful() and v6.t < t_l:
         v6_t = np.append(v6_t, v6.t + dt)
         v6_y = np.append(v6_y, v6.integrate(v6.t + dt))
@@ -249,9 +259,9 @@ if __name__ == "__main__":
                                 atol=ATOL,
                                 rtol=RTOL,
                                 beta=BETA)
-    v7.set_initial_value(x0, a)
+    v7.set_initial_value(y0, a)
     v7_t = np.append(v7_t, a)
-    v7_y = np.append(v7_y, x0)
+    v7_y = np.append(v7_y, y0)
     while v7.successful() and v7.t < t_l:
         v7_t = np.append(v7_t, v7.t + dt)
         v7_y = np.append(v7_y, v7.integrate(v7.t + dt))
@@ -259,63 +269,66 @@ if __name__ == "__main__":
     print("DOP853: ReturnCode: {}".format(v7.get_return_code()))
 
     #  compute true solution values in equal spaced and unequally spaced cases
-    x = -np.exp(1.0 - np.cos(t))
-    xrkf = -np.exp(1.0 - np.cos(t_rkf))
-    xdp54 = -np.exp(1.0 - np.cos(t_dp54))
+    y = -np.exp(1.0 - np.cos(t))
+    yrkf = -np.exp(1.0 - np.cos(t_rkf))
+    ydp54 = -np.exp(1.0 - np.cos(t_dp54))
     y_ex = -np.exp(1.0 - np.cos(v1_t))     # analytical solution for scipy.ODE
 
     #  figure( 1 )
-    figure(2, figsize=(14,10))
-    subplot(2, 2, 1)
-    plot(t, x_euler, 'b-.', t, x_heun, 'g-.', \
-        t, x_rk2a, 'r-.', t, x_rk2b, 'y-.', t, x_pc4, 'c-.')
-    xlabel('$t$')
-    ylabel('$x$')
-    title('Solutions of $dx/dt = x \sin t$, $x(0)=-1$')
-    legend(('Euler', 'Heun', '$O(h^2)$ Runge-Kutta', \
-        'RK2B', 'PC4'), loc='lower left', \
+    plt.figure(2, figsize=(14,10))
+    plt.subplot(2, 2, 1)
+    plt.plot(t, y, 'k-', t, y_heun, 'g-.', \
+        t, y_rk2a, 'r-.', t, y_rk2b, 'y-.', t, y_pc4, 'c-.', \
+        t, y_ab2e, 'k-.', t, y_am2i, 'm--', \
+        t, y_ms4, 'xkcd:teal', v1_t, v1_y, 'b--')
+    plt.xlabel('$t$')
+    plt.ylabel('$x$')
+    plt.title('Solutions of $dx/dt = x \sin t$, $x(0)=-1$')
+    plt.legend(('Analytic','Heun', '$O(h^2)$ Runge-Kutta', \
+        'RK2B', 'PC4', 'AB2E', 'AM2I', 'MS4', 'V1_AB2'), loc='lower left', \
            framealpha=0.2, fontsize='small')
 
     # figure( 2 )
-    subplot(2, 2, 2)
-    plot(t, x_euler - x, 'b-.', \
-        t, x_heun - x, 'g-.', \
-        t, x_rk2a - x, 'r-.', t, x_rk2b - x, 'y-.',t, x_pc4 - x, 'c-.')
-    xlabel('$t$')
-    ylabel('$x - x^*$')
-    title('Errors in solutions of $dx/dt = x \sin t$, $x(0)=-1$')
-    legend(('Euler', 'Heun', '$O(h^2)$ Runge-Kutta', \
-        'RK2B', 'PC4'), loc='upper left', \
+    plt.subplot(2, 2, 2)
+    plt.plot(t, y_heun - y, 'g-.',
+        t, y_rk2a - y, 'r-.', t, y_rk2b - y, 'y-.', t, y_pc4 - y, 'c-.', \
+        t, y_ab2e - y, 'k-.', t, y_am2i - y, 'm--', \
+        t, y_ms4 - y, 'xkcd:teal', v1_t, v1_y - y_ex, 'b--')
+    plt.xlabel('$t$')
+    plt.ylabel('$x - x^*$')
+    plt.title('Errors in solutions of $dx/dt = x \sin t$, $x(0)=-1$')
+    plt.legend(('Heun', '$O(h^2)$ Runge-Kutta',
+        'RK2B', 'PC4', 'AB2E', 'AM2I' , 'MS4', 'V1_AB2'), loc='upper left', \
            framealpha=0.2, fontsize='small')
 
     # figure( 3 )
-    subplot(2, 2, 3)
-    plot(t, x_rk4, 'b-.', \
-        t_rkf, x_rkf, 'r-.', t_dp54, x_dp54, 'c-.', \
-            t, x_rk45, 'g-.')
-    xlabel('$t$')
-    ylabel('$x$')
-    title('Solutions of $dx/dt = x \sin t$, $x(0)=-1$')
-    legend(('$O(h^4)$ Runge-Kutta',
+    plt.subplot(2, 2, 3)
+    plt.plot(t, y_rk4, 'b-.',
+        t_rkf, y_rkf, 'r-.', t_dp54, y_dp54, 'c-.', \
+            t, y_rk45, 'g-.')
+    plt.xlabel('$t$')
+    plt.ylabel('$x$')
+    plt.title('Solutions of $dx/dt = x \sin t$, $x(0)=-1$')
+    plt.legend(('$O(h^4)$ Runge-Kutta',
             'Runge-Kutta-Fehlberg', 'Dormand-Prince', \
                 'RK45'), loc='lower left', \
            framealpha=0.2, fontsize='small')
 
     # figure( 4 )
-    subplot(2, 2, 4)
-    plot(t, x_rk4 - x, 'b-.',  \
-        t_rkf, x_rkf - xrkf, 'r-.', \
-        t_dp54, x_dp54 - xdp54, 'c-.', t, x_rk45 - x, 'g-.')
-    xlabel('$t$')
-    ylabel('$x - x^*$')
-    title('Errors in solutions of $dx/dt = x \sin t$, $x(0)=-1$')
-    legend(('$O(h^4)$ Runge-Kutta',
+    plt.subplot(2, 2, 4)
+    plt.plot(t, y_rk4 - y, 'b-.',
+        t_rkf, y_rkf - yrkf, 'r-.', \
+        t_dp54, y_dp54 - ydp54, 'c-.', t, y_rk45 - y, 'g-.')
+    plt.xlabel('$t$')
+    plt.ylabel('$x - x^*$')
+    plt.title('Errors in solutions of $dx/dt = x \sin t$, $x(0)=-1$')
+    plt.legend(('$O(h^4)$ Runge-Kutta',
             'Runge-Kutta-Fehlberg', 'Dormand-Prince', \
                 'RK45'), loc='upper left', \
            framealpha=0.2, fontsize='small')
 
     # show()
-    savefig('ode_py_Fig1.png')
+    plt.savefig('ode_py_Fig1.png', dpi=600)
 
     # flatten the scipy.integrate.solve_ivp y results for plotting
     y_1 = np.ravel(sol1.y)
@@ -325,52 +338,52 @@ if __name__ == "__main__":
     y_5 = np.ravel(sol5.y)
 
     # figure( 1 )
-    figure(3, figsize=(14, 10))
-    subplot(2, 2, 1)
-    plot(sol1.t, y_1, 'b-.', sol2.t, y_2, 'r-.', sol3.t, y_3, 'g-.', \
+    plt.figure(3, figsize=(14, 10))
+    plt.subplot(2, 2, 1)
+    plt.plot(sol1.t, y_1, 'b-.', sol2.t, y_2, 'r-.', sol3.t, y_3, 'g-.',
         sol4.t, y_4, 'c-.', sol5.t, y_5, 'm-.')
-    xlabel('$t$')
-    ylabel('$x$')
-    title('Solutions of $dx/dt = x \sin t$, $x(0)=-1$')
-    legend(('$S1$ RK45', '$S2$ RK23', '$S3$ Radau', \
+    plt.xlabel('$t$')
+    plt.ylabel('$x$')
+    plt.title('Solve_IVP, Solutions of $dx/dt = x \sin t$, $x(0)=-1$')
+    plt.legend(('$S1$ RK45', '$S2$ RK23', '$S3$ Radau',
         '$S4$ BDF', '$S5$ LSODA'), loc='lower left', \
            framealpha=0.2, fontsize='small')
 
     # figure( 2 )
-    subplot(2, 2, 2)
-    plot(sol1.t, y_1 - x, 'b-.', sol2.t, y_2 - x, 'r-.', \
-        sol3.t, y_3 - x, 'g-.', sol4.t, y_4 - x, 'c-.', \
-            sol5.t, y_5 - x, 'm-.' )
-    xlabel('$t$')
-    ylabel('$y - y^*$')
-    title('Errors in solutions of $dx/dt = x \sin t$, $x(0)=-1$')
-    legend(('$S1$ RK45', '$S2$ RK23', '$S3$ Radau',
+    plt.subplot(2, 2, 2)
+    plt.plot(sol1.t, y_1 - y, 'b-.', sol2.t, y_2 - y, 'r-.',
+        sol3.t, y_3 - y, 'g-.', sol4.t, y_4 - y, 'c-.', \
+            sol5.t, y_5 - y, 'm-.' )
+    plt.xlabel('$t$')
+    plt.ylabel('$y - y^*$')
+    plt.title('Solve_IVP, Errors in solutions of $dx/dt = x \sin t$, $x(0)=-1$')
+    plt.legend(('$S1$ RK45', '$S2$ RK23', '$S3$ Radau',
             '$S4$ BDF', '$S5$ LSODA'), loc='upper left', \
            framealpha=0.2, fontsize='small')
 
     # figure( 3 )
-    subplot(2, 2, 3)
-    plot(v1_t, v1_y, 'b-.', v2_t, v2_y, 'r-.', v3_t, v3_y, 'g-.', \
+    plt.subplot(2, 2, 3)
+    plt.plot(v1_t, v1_y, 'b-.', v2_t, v2_y, 'r-.', v3_t, v3_y, 'g-.', \
         v4_t, v4_y, 'c-.', v5_t, v5_y, 'm-.', v6_t, v6_y, 'k-.', \
          v7_t, v7_y, 'y-.')
-    xlabel('$t$')
-    ylabel('$x$')
-    title('Solutions of $dx/dt = x \sin t$, $x(0)=-1$')
-    legend(('$Vode$ Adams(4)', '$Vode$ Adams(12)',
+    plt.xlabel('$t$')
+    plt.ylabel('$x$')
+    plt.title('ODE, Solutions of $dx/dt = x \sin t$, $x(0)=-1$')
+    plt.legend(('$Vode$ Adams(4)', '$Vode$ Adams(12)',
             '$Vode$ BDF(5)', '$Vode$ BDF(2)', \
             '$LSODA$ BDF=2', '$RKDP$ Dopri5', '$RKDP$ Dop853'), loc='lower left',
            framealpha=0.2, fontsize='small')
 
     # figure( 4 )
-    subplot(2, 2, 4)
-    plot(v1_t, v1_y - y_ex, 'b-.', v2_t, v2_y - y_ex, 'r-.', \
+    plt.subplot(2, 2, 4)
+    plt.plot(v1_t, v1_y - y_ex, 'b-.', v2_t, v2_y - y_ex, 'r-.',
         v3_t, v3_y - y_ex, 'g-.', v4_t, v4_y - y_ex, 'c-.', \
         v5_t, v5_y - y_ex, 'm-.', v6_t, v6_y - y_ex, 'k-.', \
          v7_t, v7_y - y_ex, 'y-.')
-    xlabel('$t$')
-    ylabel('$x - x^*$')
-    title('Errors in solutions of $dx/dt = x \sin t$, $x(0)=-1$')
-    legend(('$Vode$ Adams(4)', '$Vode$ Adams(12)', \
+    plt.xlabel('$t$')
+    plt.ylabel('$x - x^*$')
+    plt.title('ODE, Errors in solutions of $dx/dt = x \sin t$, $x(0)=-1$')
+    plt.legend(('$Vode$ Adams(4)', '$Vode$ Adams(12)',
             '$Vode$ BDF(5)', '$Vode$ BDF(2)', \
             '$LSODA$ BDF=2', '$RKDP$ Dopri5', '$RKDP$ Dop853'),
             loc='upper left', \
@@ -378,4 +391,4 @@ if __name__ == "__main__":
 
 
     # show()
-    savefig('ode_py_Fig2.png')
+    plt.savefig('ode_py_Fig2.png', dpi=600)
